@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown</title>
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #111;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        /* Heading */
+        #heading {
+            font-size: 40px;
+            margin-bottom: 10px;
+            color: #d02626;
+            font-weight: bold;
+        }
+
+        /* CLOCK SIZE for Laptop */
+        #countdown {
+            font-size: 180px;
+            letter-spacing: 2px;
+            transition: 0.3s ease;
+        }
+
+        /* For mobile */
+        @media (max-width: 768px) {
+            #countdown {
+                font-size: 90px;
+                transform: rotate(90deg);
+            }
+
+            #heading {
+                font-size: 28px;
+            }
+
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input {
+            padding: 7px 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: none;
+            opacity: 0.6;
+        }
+
+        button {
+            padding: 7px 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: none;
+            background: #ffffff;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.6;
+        }
+
+        button:hover {
+            background: #0097a7;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #doubleclick {
+            position: absolute;
+            bottom: 10px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .controls {
+            flex-direction: column;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Heading -->
+
+
+    <!-- Inputs + Button -->
+    <div class="controls">
+        <input type="date" id="dateSelect">
+        <input type="time" id="timeSelect">
+        <button id="startBtn">Start</button>
+    </div>
+
+    <h1 id="countdown">00:00:00</h1>
+    <p id="doubleclick" style="opacity: 10%; ">Double-click anywhere to toggle fullscreen</p>
+
+    <script>
+        let targetTime = null;
+        let inputsHidden = false;
+
+        function startCountdown() {
+            const dateInput = document.getElementById("dateSelect");
+            const timeInput = document.getElementById("timeSelect");
+            const btn = document.getElementById("startBtn");
+
+            // Show inputs again
+            if (inputsHidden) {
+                dateInput.classList.remove("hidden");
+                timeInput.classList.remove("hidden");
+                btn.textContent = "Start";
+                inputsHidden = false;
+                return;
+            }
+
+            // Start mode
+            const date = dateInput.value;
+            const time = timeInput.value;
+
+            if (!date || !time) {
+                alert("Please select BOTH date and time.");
+                return;
+            }
+
+            const [hour, minute] = time.split(":").map(Number);
+
+            targetTime = new Date(date);
+            targetTime.setHours(hour, minute, 0, 0);
+
+            // Hide inputs only
+            dateInput.classList.add("hidden");
+            timeInput.classList.add("hidden");
+
+            btn.textContent = "Time";
+            inputsHidden = true;
+        }
+
+        document.getElementById("startBtn").addEventListener("click", startCountdown);
+
+        function updateCountdown() {
+            if (!targetTime) return;
+
+            const now = new Date();
+            const diff = targetTime - now;
+
+            if (diff <= 0) {
+                document.getElementById("countdown").innerText = "TIME UP!";
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById("countdown").innerText =
+                String(hours).padStart(2, "0") + ":" +
+                String(minutes).padStart(2, "0") + ":" +
+                String(seconds).padStart(2, "0");
+        }
+
+        setInterval(updateCountdown, 1000);
+
+        // Fullscreen Toggle
+        document.addEventListener("dblclick", () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
