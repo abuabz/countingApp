@@ -16,50 +16,46 @@
             align-items: center;
             background: #111;
             color: #fff;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
             overflow: hidden;
+            transition: background 0.2s ease;
         }
 
-        /* Heading */
-        #heading {
-            font-size: 40px;
-            margin-bottom: 10px;
-            color: #d02626;
-            font-weight: bold;
+        /* FLASH EFFECT */
+        .flash {
+            animation: flashBg 0.3s infinite alternate;
         }
 
-        /* CLOCK SIZE for Laptop */
+        @keyframes flashBg {
+            0% { background: #ff0000; }
+            100% { background: #000000; }
+        }
+
         #countdown {
             font-size: 180px;
             letter-spacing: 2px;
             transition: 0.3s ease;
         }
 
-        /* For mobile */
         @media (max-width: 768px) {
             #countdown {
                 font-size: 90px;
                 transform: rotate(90deg);
             }
-
-            #heading {
-                font-size: 28px;
-            }
-
         }
 
-        /* Controls */
         .controls {
             position: absolute;
             top: 20px;
             right: 20px;
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            align-items: center;
         }
 
-        input {
+        input,
+        button {
             padding: 7px 12px;
             font-size: 16px;
             border-radius: 6px;
@@ -68,15 +64,9 @@
         }
 
         button {
-            padding: 7px 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: none;
             background: #ffffff;
-            color: #000;
-            cursor: pointer;
             font-weight: bold;
-            opacity: 0.6;
+            cursor: pointer;
         }
 
         button:hover {
@@ -87,25 +77,25 @@
             display: none;
         }
 
-        #doubleclick {
+        /* STOP BUTTON */
+        #stopBtn {
             position: absolute;
-            bottom: 10px;
-            font-size: 14px;
-            color: #888;
-        }
-
-        .controls {
-            flex-direction: column;
+            bottom: 30px;
+            padding: 15px 35px;
+            background: red;
+            color: white;
+            font-size: 24px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Heading -->
-
-
-    <!-- Inputs + Button -->
     <div class="controls">
         <input type="date" id="dateSelect">
         <input type="time" id="timeSelect">
@@ -113,27 +103,35 @@
     </div>
 
     <h1 id="countdown">00:00:00</h1>
-    <p id="doubleclick" style="opacity: 10%; ">Double-click anywhere to toggle fullscreen</p>
+
+    <!-- STOP BUTTON -->
+    <button id="stopBtn">STOP</button>
+
+    <!-- Alarm Audio (LOOP ENABLED) -->
+    <audio id="alarmSound" loop>
+        <source src="aaramsound.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
         let targetTime = null;
         let inputsHidden = false;
+        let alarmPlayed = false;
 
         function startCountdown() {
             const dateInput = document.getElementById("dateSelect");
             const timeInput = document.getElementById("timeSelect");
             const btn = document.getElementById("startBtn");
 
-            // Show inputs again
             if (inputsHidden) {
                 dateInput.classList.remove("hidden");
                 timeInput.classList.remove("hidden");
                 btn.textContent = "Start";
+                document.body.classList.remove("flash");
+                alarmPlayed = false;
                 inputsHidden = false;
                 return;
             }
 
-            // Start mode
             const date = dateInput.value;
             const time = timeInput.value;
 
@@ -143,11 +141,9 @@
             }
 
             const [hour, minute] = time.split(":").map(Number);
-
             targetTime = new Date(date);
             targetTime.setHours(hour, minute, 0, 0);
 
-            // Hide inputs only
             dateInput.classList.add("hidden");
             timeInput.classList.add("hidden");
 
@@ -165,6 +161,15 @@
 
             if (diff <= 0) {
                 document.getElementById("countdown").innerText = "TIME UP!";
+
+                if (!alarmPlayed) {
+                    document.getElementById("alarmSound").play();
+                    alarmPlayed = true;
+                    document.body.classList.add("flash");
+
+                    // Show STOP button
+                    document.getElementById("stopBtn").style.display = "block";
+                }
                 return;
             }
 
@@ -178,9 +183,14 @@
                 String(seconds).padStart(2, "0");
         }
 
-        setInterval(updateCountdown, 1000);
+        setInterval(updateCountdown, 500);
 
-        // Fullscreen Toggle
+        // STOP BUTTON → Refresh page
+        document.getElementById("stopBtn").addEventListener("click", () => {
+            location.reload();
+        });
+
+        // Fullscreen toggle
         document.addEventListener("dblclick", () => {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
