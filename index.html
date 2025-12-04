@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Countdown</title>
-
+    <title>Countdown + Clock</title>
     <style>
         body {
             margin: 0;
@@ -14,12 +13,13 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: #111;
+            background: black;
             color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
             overflow: hidden;
             transition: background 0.2s ease;
+            font-family: "Science Gothic", sans-serif;
+            font-weight: lighter;
         }
 
         /* FLASH EFFECT */
@@ -32,14 +32,15 @@
             100% { background: #000000; }
         }
 
-        #countdown {
-            font-size: 180px;
+        #display {
+            font-size: 130px;
             letter-spacing: 2px;
             transition: 0.3s ease;
+            font-weight: 400;
         }
 
         @media (max-width: 768px) {
-            #countdown {
+            #display {
                 font-size: 90px;
                 transform: rotate(90deg);
             }
@@ -52,46 +53,70 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            z-index: 10;
         }
 
-        input,
-        button {
+        input, button {
             padding: 7px 12px;
             font-size: 16px;
             border-radius: 6px;
             border: none;
-            opacity: 0.6;
+            opacity: 0.8;
         }
 
         button {
             background: #ffffff;
+            color: black;
             font-weight: bold;
             cursor: pointer;
         }
 
         button:hover {
-            background: #0097a7;
+            background: #00bcd4;
+            color: white;
         }
 
         .hidden {
             display: none;
         }
 
+        /* Bottom Toggle Button */
+        #modeToggle {
+            position: absolute;
+            bottom: 30px;
+            padding: 14px 32px;
+            background: #333;
+            color: white;
+            font-size: 20px;
+            border: 2px solid #00bcd4;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+
+        #modeToggle:hover {
+            background: #00bcd4;
+            transform: scale(1.05);
+        }
+
         /* STOP BUTTON */
         #stopBtn {
             position: absolute;
             bottom: 30px;
-            padding: 15px 35px;
+            padding: 15px 40px;
             background: red;
             color: white;
-            font-size: 24px;
-            border-radius: 10px;
+            font-size: 26px;
+            border-radius: 12px;
             border: none;
             font-weight: bold;
             cursor: pointer;
-            display: none;
+            z-index: 11;
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -99,15 +124,19 @@
     <div class="controls">
         <input type="date" id="dateSelect">
         <input type="time" id="timeSelect">
-        <button id="startBtn">Start</button>
+        <button id="startBtn">Set Timer</button>
+        <button id="currentTimeBtn">Current Time</button>
     </div>
 
-    <h1 id="countdown">00:00:00</h1>
+    <h1 id="display">00:00:00</h1>
 
-    <!-- STOP BUTTON -->
-    <button id="stopBtn">STOP</button>
+    <!-- Toggle Mode Button -->
+    <button id="modeToggle">CLOCK MODE</button>
 
-    <!-- Alarm Audio (LOOP ENABLED) -->
+    <!-- STOP BUTTON (for alarm) -->
+    <button id="stopBtn" class="hidden">STOP ALARM</button>
+
+    <!-- Alarm Sound -->
     <audio id="alarmSound" loop>
         <source src="aaramsound.mp3" type="audio/mpeg">
     </audio>
@@ -116,19 +145,32 @@
         let targetTime = null;
         let inputsHidden = false;
         let alarmPlayed = false;
+        let isClockMode = false;
 
+        const display = document.getElementById("display");
+        const modeToggle = document.getElementById("modeToggle");
+        const stopBtn = document.getElementById("stopBtn");
+        const alarmSound = document.getElementById("alarmSound");
+
+        // Start countdown from date/time picker
         function startCountdown() {
             const dateInput = document.getElementById("dateSelect");
             const timeInput = document.getElementById("timeSelect");
             const btn = document.getElementById("startBtn");
 
             if (inputsHidden) {
-                dateInput.classList.remove("hidden");
-                timeInput.classList.remove("hidden");
-                btn.textContent = "Start";
-                document.body.classList.remove("flash");
-                alarmPlayed = false;
+                // Reset to input mode
+                document.querySelectorAll(".controls input, .controls button").forEach(el => {
+                    el.classList.remove("hidden");
+                });
+                btn.textContent = "Set Timer";
                 inputsHidden = false;
+                targetTime = null;
+                alarmPlayed = false;
+                document.body.classList.remove("flash");
+                stopBtn.classList.add("hidden");
+                alarmSound.pause();
+                alarmSound.currentTime = 0;
                 return;
             }
 
@@ -136,7 +178,7 @@
             const time = timeInput.value;
 
             if (!date || !time) {
-                alert("Please select BOTH date and time.");
+                alert("Please select both date and time!");
                 return;
             }
 
@@ -144,31 +186,91 @@
             targetTime = new Date(date);
             targetTime.setHours(hour, minute, 0, 0);
 
+            // Hide inputs
             dateInput.classList.add("hidden");
             timeInput.classList.add("hidden");
-
-            btn.textContent = "Time";
+            document.getElementById("currentTimeBtn").classList.add("hidden");
+            btn.textContent = "Cancel Timer";
             inputsHidden = true;
+            isClockMode = false;
+            modeToggle.textContent = "CLOCK MODE";
         }
 
-        document.getElementById("startBtn").addEventListener("click", startCountdown);
+        // Switch to Current Time (Clock Mode)
+        document.getElementById("currentTimeBtn").addEventListener("click", () => {
+            isClockMode = true;
+            targetTime = null;
+            alarmPlayed = false;
+            document.body.classList.remove("flash");
+            stopBtn.classList.add("hidden");
+            alarmSound.pause();
+            modeToggle.textContent = "TIMER MODE";
 
-        function updateCountdown() {
-            if (!targetTime) return;
+            // Hide all controls
+            document.querySelectorAll(".controls input, .controls button").forEach(el => {
+                el.classList.add("hidden");
+            });
+        });
 
+        // Toggle between Clock and Timer
+        modeToggle.addEventListener("click", () => {
+            isClockMode = !isClockMode;
+
+            if (isClockMode) {
+                targetTime = null;
+                modeToggle.textContent = "TIMER MODE";
+                document.querySelectorAll(".controls input, .controls button").forEach(el => {
+                    el.classList.add("hidden");
+                });
+            } else {
+                modeToggle.textContent = "CLOCK MODE";
+                document.querySelectorAll(".controls input, .controls button").forEach(el => {
+                    el.classList.remove("hidden");
+                });
+            }
+
+            alarmPlayed = false;
+            document.body.classList.remove("flash");
+            stopBtn.classList.add("hidden");
+            alarmSound.pause();
+        });
+
+        // Stop alarm and reset
+        stopBtn.addEventListener("click", () => {
+            location.reload();
+        });
+
+        // Update display every 500ms
+        function updateDisplay() {
             const now = new Date();
+
+            if (isClockMode) {
+                // Show current time
+                const timeStr = now.toLocaleTimeString('en-GB', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+                display.innerText = timeStr;
+                return;
+            }
+
+            if (!targetTime) {
+                display.innerText = "00:00:00";
+                return;
+            }
+
             const diff = targetTime - now;
 
             if (diff <= 0) {
-                document.getElementById("countdown").innerText = "TIME UP!";
+                display.innerText = "TIME UP!";
 
                 if (!alarmPlayed) {
-                    document.getElementById("alarmSound").play();
+                    alarmSound.play().catch(() => {});
                     alarmPlayed = true;
                     document.body.classList.add("flash");
-
-                    // Show STOP button
-                    document.getElementById("stopBtn").style.display = "block";
+                    stopBtn.classList.remove("hidden");
+                    modeToggle.classList.add("hidden");
                 }
                 return;
             }
@@ -177,20 +279,16 @@
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-            document.getElementById("countdown").innerText =
+            display.innerText = 
                 String(hours).padStart(2, "0") + ":" +
                 String(minutes).padStart(2, "0") + ":" +
                 String(seconds).padStart(2, "0");
         }
 
-        setInterval(updateCountdown, 500);
+        setInterval(updateDisplay, 500);
+        updateDisplay(); // Initial call
 
-        // STOP BUTTON → Refresh page
-        document.getElementById("stopBtn").addEventListener("click", () => {
-            location.reload();
-        });
-
-        // Fullscreen toggle
+        // Double click for fullscreen
         document.addEventListener("dblclick", () => {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
@@ -199,7 +297,6 @@
             }
         });
     </script>
-
 </body>
 
 </html>
